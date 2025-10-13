@@ -11,7 +11,7 @@ export default function App() {
       <div className="card">
         <h1>Foot Detection Classification</h1>
         <p className="small">
-          Simple frontend with a Login button, real-time webcam, Upload Image, and Capture buttons.
+          Short description about the app or anything for later.
           No database yet — ready to plug in later.
         </p>
         <div style={{ marginTop: 10 }}>
@@ -36,3 +36,4 @@ export default function App() {
     </div>
   )
 }
+
