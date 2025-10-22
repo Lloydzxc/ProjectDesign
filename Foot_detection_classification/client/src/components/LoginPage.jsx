@@ -11,24 +11,12 @@ export default function LoginPage({ onLoginSuccess }) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Mock user database (in real app, this would be in backend)
-  const getUsers = () => {
-    const users = localStorage.getItem('users')
-    return users ? JSON.parse(users) : []
-  }
-
-  const saveUser = (user) => {
-    const users = getUsers()
-    users.push(user)
-    localStorage.setItem('users', JSON.stringify(users))
-  }
-
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
-    setError('') // Clear error when user types
+    setError('')
   }
 
   const handleSubmit = async (e) => {
@@ -36,83 +24,94 @@ export default function LoginPage({ onLoginSuccess }) {
     setError('')
     setIsLoading(true)
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    if (isSignUp) {
-      // Sign Up Logic
-      if (!formData.fullName.trim()) {
-        setError('Please enter your full name')
-        setIsLoading(false)
-        return
-      }
-
-      if (!formData.email.trim() || !formData.email.includes('@')) {
-        setError('Please enter a valid email address')
-        setIsLoading(false)
-        return
-      }
-
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters')
-        setIsLoading(false)
-        return
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match')
-        setIsLoading(false)
-        return
-      }
-
-      // Check if user already exists
-      const users = getUsers()
-      if (users.some(u => u.email === formData.email)) {
-        setError('An account with this email already exists')
-        setIsLoading(false)
-        return
-      }
-
-      // Save new user
-      saveUser({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName
-      })
-
-      alert('Account created successfully! Please login.')
-      setIsSignUp(false)
-      setFormData({ email: formData.email, password: '', confirmPassword: '', fullName: '' })
-    } else {
-      // Login Logic
-      if (!formData.email.trim() || !formData.password.trim()) {
-        setError('Please enter both email and password')
-        setIsLoading(false)
-        return
-      }
-
-      const users = getUsers()
-      const user = users.find(
-        u => u.email === formData.email && u.password === formData.password
-      )
-
-      if (!user) {
-        // Check if email exists but password is wrong
-        const emailExists = users.some(u => u.email === formData.email)
-        if (emailExists) {
-          setError('❌ Incorrect password. Please try again.')
-        } else {
-          setError('❌ No account found with this email. Please sign up first.')
+    try {
+      if (isSignUp) {
+        // Sign Up Logic
+        if (!formData.fullName.trim()) {
+          setError('Please enter your full name')
+          setIsLoading(false)
+          return
         }
-        setIsLoading(false)
-        return
+
+        if (!formData.email.trim() || !formData.email.includes('@')) {
+          setError('Please enter a valid email address')
+          setIsLoading(false)
+          return
+        }
+
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters')
+          setIsLoading(false)
+          return
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match')
+          setIsLoading(false)
+          return
+        }
+
+        const response = await fetch('http://localhost:4000/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setError(data.error || 'Sign up failed')
+          setIsLoading(false)
+          return
+        }
+
+        // Save token
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+
+        alert('✅ Account created successfully!')
+        onLoginSuccess(data.user)
+      } else {
+        // Login Logic
+        if (!formData.email.trim() || !formData.password.trim()) {
+          setError('Please enter both email and password')
+          setIsLoading(false)
+          return
+        }
+
+        const response = await fetch('http://localhost:4000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setError(data.error || 'Login failed')
+          setIsLoading(false)
+          return
+        }
+
+        // Save token
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+
+        onLoginSuccess(data.user)
       }
-
-      // Successful login
-      onLoginSuccess(user)
+    } catch (error) {
+      console.error('Auth error:', error)
+      setError('Connection error. Please check if server is running.')
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   const toggleMode = () => {
@@ -137,7 +136,7 @@ export default function LoginPage({ onLoginSuccess }) {
           <p className="small" style={{ color: 'var(--text-secondary)' }}>
             {isSignUp 
               ? 'Sign up to start detecting foot conditions' 
-              : 'Login to access foot detection system'}
+              : 'Login to access foot detection and classification system'}
           </p>
         </div>
 
@@ -288,14 +287,13 @@ export default function LoginPage({ onLoginSuccess }) {
             {isLoading ? (
               <><span className="loading"></span>{isSignUp ? 'Creating Account...' : 'Logging in...'}</>
             ) : (
-              isSignUp ? ' Create Account' : 'Login'
+              isSignUp ? ' Create Account' : ' Login'
             )}
           </button>
 
           <div style={{ textAlign: 'center' }}>
             <button
               type="button"
-              className="secondary"
               onClick={toggleMode}
               style={{ 
                 background: 'transparent', 
@@ -304,7 +302,8 @@ export default function LoginPage({ onLoginSuccess }) {
                 padding: '8px',
                 fontSize: 14,
                 cursor: 'pointer',
-                textDecoration: 'underline'
+                textDecoration: 'underline',
+                boxShadow: 'none'
               }}
             >
               {isSignUp 

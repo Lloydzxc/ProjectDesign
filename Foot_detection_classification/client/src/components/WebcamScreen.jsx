@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-export default function WebcamScreen() {
+export default function WebcamScreen({ onViewHistory }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const resultCanvasRef = useRef(null)
@@ -13,6 +13,8 @@ export default function WebcamScreen() {
   const [isDetecting, setIsDetecting] = useState(false)
   const [error, setError] = useState(null)
   const [cameraReady, setCameraReady] = useState(false)
+  const [lastCaptureTime, setLastCaptureTime] = useState(0)
+  const CAPTURE_COOLDOWN = 5000 // 5 seconds between captures
 
   // Start camera on mount
   useEffect(() => {
@@ -86,9 +88,13 @@ export default function WebcamScreen() {
     setError(null)
     
     try {
+      const token = localStorage.getItem('token')
       const response = await fetch('http://localhost:4000/api/detect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           image_base64: imageDataUrl,
           conf: 0.25,
@@ -166,7 +172,7 @@ export default function WebcamScreen() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2>Foot Detection Classification</h2>
+        <h2> Foot Detection and Classification</h2>
         {cameraReady && <span className="status-badge">Camera Ready</span>}
       </div>
 
@@ -186,6 +192,10 @@ export default function WebcamScreen() {
           <input type="file" accept="image/*" onChange={handleFileChange} />
           Upload Image
         </label>
+
+        <button className="secondary" onClick={onViewHistory}>
+           View History
+        </button>
       </div>
 
       {error && (
@@ -201,14 +211,14 @@ export default function WebcamScreen() {
       {detections.length > 0 && (
         <div style={{ marginTop: 28 }}>
           <div className="section-title">
-            ✨ Detection Results ({detections.length} {detections.length === 1 ? 'object' : 'objects'} found)
+             Detection Results ({detections.length} {detections.length === 1 ? 'object' : 'objects'} found)
           </div>
           <canvas ref={resultCanvasRef} style={{ width: '100%', borderRadius: 12, border: '2px solid #1f2937', marginBottom: 16 }} />
           
           <div>
             {detections.map((det, i) => (
               <div key={i} className="detection-item">
-                <strong>🦶 {det.class_name}</strong>
+                <strong> {det.class_name}</strong>
                 <span className="confidence">{(det.confidence * 100).toFixed(1)}%</span>
               </div>
             ))}
