@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'
 import LoginPage from './components/LoginPage.jsx'
 import WebcamScreen from './components/WebcamScreen.jsx'
 import HistoryPage from './components/HistoryPage.jsx'
+import MeasurementScreen from './components/MeasurementScreen.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
-  const [currentPage, setCurrentPage] = useState('detection') // 'detection' or 'history'
+  // Page navigation state: 'detection', 'history', or 'measurement'
+  const [currentPage, setCurrentPage] = useState('detection')
 
   // Check if user is already logged in (from localStorage)
   useEffect(() => {
@@ -34,9 +36,10 @@ export default function App() {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />
   }
 
-  // If user is logged in, show main app
+  // If user is logged in, show main app with navigation
   return (
     <div className="container">
+      {/* Header Card with User Info and Logout */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
@@ -46,15 +49,84 @@ export default function App() {
             </p>
           </div>
           <button className="secondary" onClick={handleLogout}>
-             Logout
+            🚪 Logout
           </button>
         </div>
       </div>
 
+      {/* Navigation Tabs */}
+      <div className="card" style={{ marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {/* AI Detection Tab */}
+          <button 
+            onClick={() => setCurrentPage('detection')}
+            style={{
+              background: currentPage === 'detection' ? 'var(--primary)' : 'transparent',
+              border: currentPage === 'detection' ? 'none' : '2px solid var(--card-border)',
+              color: currentPage === 'detection' ? 'white' : 'var(--text-primary)',
+              padding: '10px 20px',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            🤖 AI Detection
+          </button>
+
+          {/* Foot Measurement Tab */}
+          <button 
+            onClick={() => setCurrentPage('measurement')}
+            style={{
+              background: currentPage === 'measurement' ? 'var(--primary)' : 'transparent',
+              border: currentPage === 'measurement' ? 'none' : '2px solid var(--card-border)',
+              color: currentPage === 'measurement' ? 'white' : 'var(--text-primary)',
+              padding: '10px 20px',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            📏 Foot Measurements
+          </button>
+
+          {/* History Tab */}
+          <button 
+            onClick={() => setCurrentPage('history')}
+            style={{
+              background: currentPage === 'history' ? 'var(--primary)' : 'transparent',
+              border: currentPage === 'history' ? 'none' : '2px solid var(--card-border)',
+              color: currentPage === 'history' ? 'white' : 'var(--text-primary)',
+              padding: '10px 20px',
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            📚 History
+          </button>
+        </div>
+      </div>
+
+      {/* Page Content - Renders based on currentPage state */}
       <div style={{ marginTop: 20 }}>
-        {currentPage === 'detection' ? (
+        {currentPage === 'detection' && (
+          // AI-powered foot detection using YOLO model
           <WebcamScreen onViewHistory={() => setCurrentPage('history')} />
-        ) : (
+        )}
+        
+        {currentPage === 'measurement' && (
+          // Manual foot measurement using A4 reference paper (no AI)
+          <MeasurementScreen onBack={() => setCurrentPage('detection')} />
+        )}
+        
+        {currentPage === 'history' && (
+          // View past AI detection results
           <HistoryPage onBack={() => setCurrentPage('detection')} />
         )}
       </div>
